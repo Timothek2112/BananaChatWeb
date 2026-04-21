@@ -325,74 +325,82 @@ class Voice {
     } else {
       const qualities = this.getEnabledScreenShareQualities();
       try {
-        const localTrack = await room.localParticipant.setScreenShareEnabled(
-          true,
-          {
-            resolution:
-              this.getEnabledScreenShareQualities()[
-                this.#settings.screenShareQuality || "low"
-              ]?.resolution,
-            audio: {
-              echoCancellation: false,
-              noiseSuppression: false,
-              autoGainControl: false,
-            },
-          },
-        );
+        // const localTrack = await room.localParticipant.setScreenShareEnabled(
+        //   true,
+        //   {
+        //     resolution:
+        //       this.getEnabledScreenShareQualities()[
+        //         this.#settings.screenShareQuality || "low"
+        //       ]?.resolution,
+        //     audio: true,
+        //   },
+        // );
 
-        this.#setScreenshare(room.localParticipant.isScreenShareEnabled);
+        const localTrack = await room.localParticipant.createScreenTracks({
+          resolution:
+            this.getEnabledScreenShareQualities()[
+              this.#settings.screenShareQuality || "low"
+            ]?.resolution,
+          audio: true,
+        });
 
-        if (localTrack) {
-          const callback = async (qualityName: ScreenShareQualityName) => {
-            const quality = qualities[qualityName] || qualities.low!;
+        localTrack.forEach((track) => {
+          room.localParticipant.publishTrack(track);
+        });
 
-            if (localTrack.videoTrack) {
-              await localTrack.videoTrack.mediaStreamTrack.applyConstraints({
-                frameRate: { max: quality.resolution.frameRate },
-                width:
-                  quality.resolution.width === 0
-                    ? undefined
-                    : { max: quality.resolution.width },
-                height:
-                  quality.resolution.width === 0
-                    ? undefined
-                    : { max: quality.resolution.height },
-              });
-              localTrack.videoTrack.mediaStreamTrack.contentHint =
-                quality.contentHint;
-            }
-          };
+        // this.#setScreenshare(room.localParticipant.isScreenShareEnabled);
 
-          if (this.#settings.screenShareQualityAsk) {
-            if (Object.keys(qualities).length > 1) {
-              localTrack.pauseUpstream();
-              this.openModal({
-                onCancel: async () => {
-                  await room.localParticipant.setScreenShareEnabled(false);
-                  this.#setScreenshare(
-                    room.localParticipant.isScreenShareEnabled,
-                  );
-                },
-                type: "screen_share_settings",
-                trackReference: {
-                  participant: room.localParticipant,
-                  publication: localTrack,
-                  source: Track.Source.ScreenShare,
-                },
-                qualities: Object.keys(qualities).map((k) => {
-                  const v = qualities[k as ScreenShareQualityName]!;
-                  return { name: k, fullName: v.fullName };
-                }),
-                callback: async (qualityName) => {
-                  callback(qualityName);
-                  localTrack.resumeUpstream();
-                },
-              });
-            } else {
-              callback(this.#settings.screenShareQuality || "low");
-            }
-          }
-        }
+        // if (localTrack) {
+        //   const callback = async (qualityName: ScreenShareQualityName) => {
+        //     const quality = qualities[qualityName] || qualities.low!;
+
+        //     if (localTrack.videoTrack) {
+        //       await localTrack.videoTrack.mediaStreamTrack.applyConstraints({
+        //         frameRate: { max: quality.resolution.frameRate },
+        //         width:
+        //           quality.resolution.width === 0
+        //             ? undefined
+        //             : { max: quality.resolution.width },
+        //         height:
+        //           quality.resolution.width === 0
+        //             ? undefined
+        //             : { max: quality.resolution.height },
+        //       });
+        //       localTrack.videoTrack.mediaStreamTrack.contentHint =
+        //         quality.contentHint;
+        //     }
+        //   };
+
+        //   if (this.#settings.screenShareQualityAsk) {
+        //     if (Object.keys(qualities).length > 1) {
+        //       localTrack.pauseUpstream();
+        //       this.openModal({
+        //         onCancel: async () => {
+        //           await room.localParticipant.setScreenShareEnabled(false);
+        //           this.#setScreenshare(
+        //             room.localParticipant.isScreenShareEnabled,
+        //           );
+        //         },
+        //         type: "screen_share_settings",
+        //         trackReference: {
+        //           participant: room.localParticipant,
+        //           publication: localTrack,
+        //           source: Track.Source.ScreenShare,
+        //         },
+        //         qualities: Object.keys(qualities).map((k) => {
+        //           const v = qualities[k as ScreenShareQualityName]!;
+        //           return { name: k, fullName: v.fullName };
+        //         }),
+        //         callback: async (qualityName) => {
+        //           callback(qualityName);
+        //           localTrack.resumeUpstream();
+        //         },
+        //       });
+        //     } else {
+        //       callback(this.#settings.screenShareQuality || "low");
+        //     }
+        //   }
+        // }
       } catch (e) {
         this.onErr(e);
       }
