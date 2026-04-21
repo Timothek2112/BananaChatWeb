@@ -332,7 +332,11 @@ class Voice {
               this.getEnabledScreenShareQualities()[
                 this.#settings.screenShareQuality || "low"
               ]?.resolution,
-            audio: true,
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+            },
           },
         );
 
